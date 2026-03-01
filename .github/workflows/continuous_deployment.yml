@@ -12,8 +12,13 @@ jobs:
       deploy: ${{ steps.tag_exists.outputs.exists  == 'false' }}
       version: ${{ steps.latest_version.outputs.version }}
     steps:
-    - uses: actions/checkout@v3
-    - uses: actions/setup-python@v4.4.0
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
+    - uses: actions/setup-python@5ccb29d8773c3f3f653e1705f474dfaa8a06a912 # v4.4.0
       with:
         python-version: "3.11"
     - name: Install Changelogger
@@ -23,7 +28,7 @@ jobs:
       run: |
         VERSION=$(changelogger versions --latest)
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
-    - uses: mukunku/tag-exists-action@v1.2.0
+    - uses: mukunku/tag-exists-action@9298fbcc409758ba624a0ae16b83df86637cb8ce # v1.2.0
       id: tag_exists
       with:
         tag: ${{ steps.latest_version.outputs.version }}
@@ -35,9 +40,14 @@ jobs:
     env:
       ZIP_FILE_NAME: klaviyo_reclaim-${{ needs.determine-if-deploy.outputs.version }}.zip
     steps:
-    - uses: actions/checkout@v3
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+      with:
+        egress-policy: audit
+
+    - uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
     - name: Setup Python 3.11
-      uses: actions/setup-python@v4.4.0
+      uses: actions/setup-python@5ccb29d8773c3f3f653e1705f474dfaa8a06a912 # v4.4.0
       with:
         python-version: '3.11'
 
@@ -64,7 +74,7 @@ jobs:
 
     - name: Create GitHub Tag & Release
       # Creates GH tag and release, adds zip archive as artifact to release.
-      uses: ncipollo/release-action@v1
+      uses: step-security/release-action@03a57407052f15d1537fd5469a6fbbc536aba326 # v1.20.0
       with:
         tag: ${{ needs.determine-if-deploy.outputs.version }}
         commit: ${{ github.sha }}
@@ -75,7 +85,7 @@ jobs:
 
     - name: Send PagerDuty alert on failure
       if: ${{ failure() }}
-      uses: award28/action-pagerduty-alert@0.4.0
+      uses: award28/action-pagerduty-alert@504f380bbe87d9787337d1aaac91658040463c7f # 0.4.0
       with:
         pagerduty-integration-key: '${{ secrets.PAGERDUTY_INTEGRATION_KEY }}'
         pagerduty-dedup-key: magento_two_cd
@@ -84,10 +94,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-if-deploy, github-tag-and-release]
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+      with:
+        egress-policy: audit
+
     - run: echo "Releasing to Magento2"
     - name: Send PagerDuty alert on failure
       if: ${{ failure() }}
-      uses: award28/action-pagerduty-alert@0.4.0
+      uses: award28/action-pagerduty-alert@504f380bbe87d9787337d1aaac91658040463c7f # 0.4.0
       with:
         pagerduty-integration-key: '${{ secrets.PAGERDUTY_INTEGRATION_KEY }}'
         pagerduty-dedup-key: magento_two_cd
